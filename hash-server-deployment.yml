@@ -1,0 +1,35 @@
+# Servico para expor o servidor, aqui deixei do tipo LoadBalancing para testes mas este serviço é interno
+# TODO: alterar o tipo
+apiVersion: v1
+kind: Service
+metadata:
+  name: hash-server-svc
+spec:
+  selector:
+    type: hash-server
+  type: LoadBalancer
+  ports:
+    - port: 9090
+      targetPort: 9090
+---
+# Deployment do servidor em Go
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hash-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      type: hash-server
+  template:
+    metadata:
+      name: hash-server
+      labels:
+        type: hash-server
+    spec:
+      containers:
+        - name: hash-server
+          image: thiagoboeker/hashserver:0.7
+          ports:
+            - containerPort: 9090

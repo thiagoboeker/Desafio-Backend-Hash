@@ -1,0 +1,13 @@
+# Servico para expor a instancia do MySQL para fins de debug
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-lb-svc
+spec:
+  type: LoadBalancer
+  selector:
+    statefulset.kubernetes.io/pod-name: hash-api-mysql-0
+  externalTrafficPolicy: Local
+  ports:
+    - port: 3307
+      targetPort: 3306

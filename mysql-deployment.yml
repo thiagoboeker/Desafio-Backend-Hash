@@ -1,0 +1,78 @@
+# StorageClass que sera responsavel por administrar os volumes para o MySQL
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: hash-api-mysql
+provisioner: kubernetes.io/minikube-hostpath
+reclaimPolicy: Retain
+---
+# O volume para persistir os dados do tipo HostPath
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-volume-3
+spec:
+  accessModes: ["ReadWriteMany"]
+  capacity:
+    storage: 200Mi
+  storageClassName: hash-api-mysql
+  hostPath:
+    type: DirectoryOrCreate
+    path: /mysql4
+---
+# Servico do MySQL, do tipo headless(clusterIP: None)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  clusterIP: None
+  selector:
+    db: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+# StatefulSet do MySQL, um Pod com unico para persistir os dados e resolver o problema com state
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hash-api-mysql
+spec:
+  replicas: 1
+  serviceName: mysql-svc
+  selector:
+    matchLabels:
+      db: mysql
+  template:
+    metadata:
+      name: hash-api-mysql
+      labels:
+        db: mysql
+    spec:
+      # TODO: adicionar liveness e readiness Probes
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: hash-api-mysql
+          image: mysql:5.6
+          volumeMounts:
+            - name: hash-api-mysql-claim
+              mountPath: /var/lib/mysql
+          args:
+            - "--ignore-db-dir=lost+found"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+            # Cria um schema chamado adonis ao startar
+            - name: MYSQL_DATABASE
+              value: adonis
+  volumeClaimTemplates:
+    - metadata:
+        name: hash-api-mysql-claim
+        annotations:
+          volume.beta.kubernetes.io/storage-class: hash-api-mysql
+      spec:
+        accessModes: [ "ReadWriteMany" ]
+        resources:
+          requests:
+            storage: 200Mi

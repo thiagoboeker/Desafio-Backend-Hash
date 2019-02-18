@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = "/server/proto";
+
+message User {
+    int64 ID = 1;
+    string Birthdate = 2; 
+}
+
+message Product {
+    int64 ID = 1;
+    int64 Price = 2;
+}
+message Done {
+    bool Status = 1;
+}
+
+message Response {
+    float Pct = 1;
+    int64 ValueInCents = 2;
+}
+
+message RequestDiscount {
+    int64 ProductID = 1;
+    int64 UserID = 2;
+}
+service Service {
+    rpc RegisterBirthdate(User) returns(Done){}
+    rpc RegisterProduct(Product) returns(Done){}
+    rpc GetDiscount(RequestDiscount) returns(Response){}
+}

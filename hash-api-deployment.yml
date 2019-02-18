@@ -1,0 +1,50 @@
+# Servico responsavel pela API, aqui escolhi NodePort por esta no minikube
+apiVersion: v1
+kind: Service
+metadata:
+  name: hash-api-svc
+spec:
+  selector:
+    app: hash-api
+  type: NodePort
+  ports:
+    - port: 3333
+      targetPort: 3333
+      nodePort: 32500
+---
+# Deployment da API, 1 replica apenas por questao de recursos do minikube
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hash-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hash-api
+  template:
+    metadata:
+      name: hash-api
+      labels:
+        app: hash-api
+    spec:
+      containers:
+        - name: hash-api
+          image: thiagoboeker/hashapi:0.6
+          env:
+            # Seta o host, baseado na convenção do Kubernetes para StatefulSets de <pod-name>.<pod-svc>...
+            - name: DB_HOST
+              value: hash-api-mysql-0.mysql-svc.default.svc.cluster.local
+            - name: DB_PASSWORD
+              value: root
+            - name: DB_DATABASE
+              value: adonis
+            - name: HOST
+              value: 0.0.0.0
+          # Roda as migrations e starta o server
+          command: ["/bin/sh", "-c"]
+          args:
+            - node ace migration:run --force;
+              npm start;
+          ports:
+            - containerPort: 3333
